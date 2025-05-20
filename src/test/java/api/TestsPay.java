@@ -2,6 +2,8 @@ package api;
 
 import api.additionally.AuthSubscriber;
 import api.additionally.ManagerTestBase;
+import api.additionally.SubscriberData;
+import api.additionally.TestData;
 import io.restassured.http.ContentType;
 import org.junit.Test;
 
@@ -23,13 +25,13 @@ public class TestsPay extends ManagerTestBase {
     // PATCH - успешное пополнение баланса менеджером
     @Test
     public void payForSubscriberByManagerTest() {
-        String validSubscriberId = "79241263770";
+        SubscriberData validSubscriber = TestData.existValidSubscriber();
         double paymentAmount = 120.0;
 
         given()
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + authToken)
-                .pathParam("subscriberId", validSubscriberId)
+                .pathParam("subscriberId", validSubscriber.getSubscriberId())
                 .body(createRequestBody(paymentAmount))
                 .when()
                 .patch("/subscribers/{subscriberId}/balance")
@@ -40,13 +42,13 @@ public class TestsPay extends ManagerTestBase {
     // PATCH - пополнение баланса абонентом (должно быть запрещено)
     @Test
     public void payForSubscriberBySelfTest() {
-        String subscriberId = "79241263770";
+        SubscriberData validSubscriber = TestData.existValidSubscriber();
         double paymentAmount = 120.0;
 
         given()
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + AuthSubscriber.getSubscriberToken())
-                .pathParam("subscriberId", subscriberId)
+                .pathParam("subscriberId", validSubscriber.getSubscriberId())
                 .body(createRequestBody(paymentAmount))
                 .when()
                 .patch("/subscribers/{subscriberId}/balance")
@@ -59,13 +61,13 @@ public class TestsPay extends ManagerTestBase {
     // PATCH - пополнение отрицательной суммой
     @Test
     public void payWithNegativeSumForSubscriberByManagerTest() {
-        String validSubscriberId = "79241263770";
+        SubscriberData validSubscriber = TestData.existValidSubscriber();
         double negativeAmount = -10.0;
 
         given()
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + authToken)
-                .pathParam("subscriberId", validSubscriberId)
+                .pathParam("subscriberId", validSubscriber.getSubscriberId())
                 .body(createRequestBody(negativeAmount))
                 .when()
                 .patch("/subscribers/{subscriberId}/balance")
@@ -78,13 +80,13 @@ public class TestsPay extends ManagerTestBase {
     // PATCH - пополнение нулевой суммой
     @Test
     public void payWithNullForSubscriberByManagerTest() {
-        String validSubscriberId = "79241263770";
+        SubscriberData validSubscriber = TestData.existValidSubscriber();
         double zeroAmount = 0.0;
 
         given()
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + authToken)
-                .pathParam("subscriberId", validSubscriberId)
+                .pathParam("subscriberId", validSubscriber.getSubscriberId())
                 .body(createRequestBody(zeroAmount))
                 .when()
                 .patch("/subscribers/{subscriberId}/balance")
@@ -97,13 +99,13 @@ public class TestsPay extends ManagerTestBase {
     // PATCH - пополнение несуществующему абоненту
     @Test
     public void payForNoSubscriberByManagerTest() {
-        String nonExistentSubscriberId = "70000000000";
+        SubscriberData invalidSubscriber = TestData.nonExistSubscriber();
         double paymentAmount = 100.0;
 
         given()
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + authToken)
-                .pathParam("subscriberId", nonExistentSubscriberId)
+                .pathParam("subscriberId", invalidSubscriber.getSubscriberId())
                 .body(createRequestBody(paymentAmount))
                 .when()
                 .patch("/manager/subscribers/{subscriberId}/balance")

@@ -1,6 +1,7 @@
 package api.additionally;
 
 public class SubscriberData {
+    private Integer subscriberId;
     private String msisdn;
     private String firstName;
     private String secondName;
@@ -14,8 +15,17 @@ public class SubscriberData {
         this.surname = surname;
     }
 
-    public SubscriberData(String msisdn, String firstName, String secondName,
+    public SubscriberData(Integer subscriberId, String msisdn, String firstName, String surname, Integer tariffId) {
+        this.subscriberId = subscriberId;
+        this.msisdn = msisdn;
+        this.firstName = firstName;
+        this.surname = surname;
+        this.tariffId = tariffId;
+    }
+
+    public SubscriberData(Integer subscriberId, String msisdn, String firstName, String secondName,
                           String surname, Integer tariffId, Double balance) {
+        this.subscriberId = subscriberId;
         this.msisdn = msisdn;
         this.firstName = firstName;
         this.secondName = secondName;
@@ -25,6 +35,9 @@ public class SubscriberData {
     }
 
     // Геттеры
+
+    public Integer getSubscriberId() { return subscriberId; }
+
     public String getMsisdn() {
         return msisdn;
     }

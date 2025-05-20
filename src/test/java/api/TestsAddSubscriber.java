@@ -1,9 +1,9 @@
-// 3. Исправленный тестовый класс (TestsAddSubscriber.java)
 package api;
 
 import api.additionally.AuthSubscriber;
 import api.additionally.ManagerTestBase;
 import api.additionally.SubscriberData;
+import api.additionally.TestData;
 import io.restassured.http.ContentType;
 import org.testng.annotations.Test;
 
@@ -15,33 +15,25 @@ public class TestsAddSubscriber extends ManagerTestBase {
     //POST - тест на успешное добавление абонента менеджером
     @Test
     public void addNewSubscriberByManagerTest() {
-        SubscriberData newSubscriber = new SubscriberData(
-                "79241263778",
-                "Алина",
-                "Михайлова"
-        );
+        SubscriberData validSubscriber = TestData.createValidSubscriber();
 
         given()
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + authToken)
-                .body(newSubscriber)
+                .body(validSubscriber)
                 .when()
                 .post("/subscriber")
                 .then()
                 .statusCode(200)
-                .body("msisdn", equalTo(newSubscriber.getMsisdn()))
-                .body("firstName", equalTo(newSubscriber.getFirstName()))
-                .body("surname", equalTo(newSubscriber.getSurname()));
+                .body("msisdn", equalTo(validSubscriber.getMsisdn()))
+                .body("firstName", equalTo(validSubscriber.getFirstName()))
+                .body("surname", equalTo(validSubscriber.getSurname()));
     }
 
     //POST - тест на добавление абонента менеджером с некорректным номером
     @Test
     public void addSubscriberWithInvalidDataTest() {
-        SubscriberData invalidSubscriber = new SubscriberData(
-                "792412623",
-                "Алина",
-                "Михайлова"
-        );
+        SubscriberData invalidSubscriber = TestData.createInvalidPhoneSubscriber();
 
         given()
                 .contentType(ContentType.JSON)
@@ -58,11 +50,7 @@ public class TestsAddSubscriber extends ManagerTestBase {
     //POST - тест на добавление абонента менеджером без аутентификации
     @Test
     public void addSubscriberUnauthorizedTest() {
-        SubscriberData validSubscriber = new SubscriberData(
-                "79241263776",
-                "Алина",
-                "Петрова"
-        );
+        SubscriberData validSubscriber = TestData.createValidSubscriber();
 
         given()
                 .contentType(ContentType.JSON)
@@ -78,11 +66,7 @@ public class TestsAddSubscriber extends ManagerTestBase {
     //POST - тест на добавление абонента менеджером без прав доступа
     @Test
     public void addSubscriberForbiddenTest() {
-        SubscriberData validSubscriber = new SubscriberData(
-                "79241263776",
-                "Алина",
-                "Петрова"
-        );
+        SubscriberData validSubscriber = TestData.createValidSubscriber();
 
         String subscriberToken = AuthSubscriber.getSubscriberToken();
 
@@ -101,12 +85,7 @@ public class TestsAddSubscriber extends ManagerTestBase {
     //POST - тест на добавление абонента менеджером с несуществующем тарифом
     @Test
     public void addSubscriberWithInvalidTariffTest() {
-        SubscriberData invalidSubscriber = new SubscriberData(
-                "79241263770",
-                "Иван",
-                "Петров"
-        );
-        invalidSubscriber.setTariffId(0); // Несуществующий ID
+        SubscriberData invalidSubscriber = TestData.createSubscriberWithInvalidTariff();
 
         given()
                 .contentType(ContentType.JSON)
@@ -123,13 +102,7 @@ public class TestsAddSubscriber extends ManagerTestBase {
     //POST - тест на добавление существующего абонента менеджером
     @Test
     public void addExistingSubscriberTest() {
-        SubscriberData existingSubscriber = new SubscriberData(
-                "79241263770",  // Номер, который уже есть в системе
-                "Алина",
-                "Михайлова"
-        );
-        existingSubscriber.setBalance(180.0);
-        existingSubscriber.setTariffId(2);
+        SubscriberData existingSubscriber = TestData.createExistingSubscriber();
 
         given()
                 .contentType(ContentType.JSON)
@@ -146,11 +119,7 @@ public class TestsAddSubscriber extends ManagerTestBase {
     //POST - тест на добавление абонента менеджером без обязательного поля
     @Test
     public void addSubscriberWithEmptyRequiredFieldTest() {
-        SubscriberData invalidSubscriber = new SubscriberData(
-                "79241263770",
-                "",
-                "Михайлова"
-        );
+        SubscriberData invalidSubscriber = TestData.createSubscriberWithEmptyName();
 
         given()
                 .contentType(ContentType.JSON)

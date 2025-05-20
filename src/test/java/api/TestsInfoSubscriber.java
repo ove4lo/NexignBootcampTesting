@@ -1,6 +1,8 @@
 package api;
 
 import api.additionally.ManagerTestBase;
+import api.additionally.SubscriberData;
+import api.additionally.TestData;
 import io.restassured.http.ContentType;
 import org.junit.Test;
 
@@ -12,12 +14,12 @@ public class TestsInfoSubscriber extends ManagerTestBase {
     // GET - успешное получение информации об абоненте
     @Test
     public void getInfoAboutSubscriberTest() {
-        String validSubscriberId = "12";
+        SubscriberData validSubscriber = TestData.existValidSubscriber();
 
         given()
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + authToken)
-                .pathParam("subscriberId", validSubscriberId)
+                .pathParam("subscriberId", validSubscriber.getSubscriberId())
                 .when()
                 .log().all()
                 .get("/subscribers/{subscriberId}")
@@ -29,12 +31,12 @@ public class TestsInfoSubscriber extends ManagerTestBase {
     // GET - невалидный формат идентификатора абонента
     @Test
     public void getInfoAboutSubscriberWithInvalidFormat() {
-        String invalidSubscriberId = "-1";
+        SubscriberData invalidSubscriber = TestData.nonExistSubscriber();
 
         given()
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + authToken)
-                .pathParam("subscriberId", invalidSubscriberId)
+                .pathParam("subscriberId", invalidSubscriber.getSubscriberId())
                 .when()
                 .get("/subscribers/{subscriberId}")
                 .then()
@@ -46,11 +48,11 @@ public class TestsInfoSubscriber extends ManagerTestBase {
     // GET - запрос без аутентификации
     @Test
     public void getInfoAboutSubscriberUnauthorized() {
-        String validSubscriberId = "2";
+        SubscriberData validSubscriber = TestData.existValidSubscriber();
 
         given()
                 .contentType(ContentType.JSON)
-                .pathParam("subscriberId", validSubscriberId)
+                .pathParam("subscriberId", validSubscriber.getSubscriberId())
                 .when()
                 .get("/subscribers/{subscriberId}")
                 .then()
