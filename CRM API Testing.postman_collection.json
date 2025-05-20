@@ -1,0 +1,1887 @@
+{
+	"info": {
+		"_postman_id": "2463c6aa-97f6-4812-910b-6850ec67de75",
+		"name": "CRM API Testing",
+		"description": "# **Тестирование CRM API**\n\nЕсть 2 роли: manager и subscriber, следовательно 2 папки для разделения запросов.  \nТокены были получены из sso сервиса.\n\nТестирование было проведено по готовым эндпоинтам проекта.\n\n## _Subscriber:_\n\n### **`PATCH /subscriber/balance`** - пополнение баланса пользователем\n\n200 ОК - успешное пополнение баланса пользователем(абонентом)\n\n404 Not Found - пользователь(абонент) не найден\n\n400 Invalid - пополнение баланса на негативную/0 сумму(amount must be more 0), не число.\n\n## Manager:\n\n###### `POST /manager/subscriber` - создание пользователя(абонента) менеджером\n\n200 ОК - успешное создания пользователя(абонента)\n\n409 Exist - дубликат пользователя(абонента)\n\n404 Not Found - не найден тариф\n\n400 Invalid - без обязательного поля, некорректный номер, номер другого оператора, с неагтивным/нулевым балансом\n\n###### `PUT /subscribers/{{subscriberId}}/tariff/{{tariffId}}` - смена тарифа у пользователя(абонента) менеджером\n\n200 ОК - успешное смена тарифа пользователя(абонента)\n\n404 Not Found - не найден тариф, пользователь(абонент)\n\n400 Invalid - невалидные данные id тарифа и пользователя(абонента)\n\n###### `PATCH /manager/subscribers/{{subscriberId}}/balance` - пополнение баланса менеджером пользователю(абоненту)\n\n200 ОК - успешное пополнение баланса пользователю(абоненту)\n\n404 Not Found - пользователь(абонент) не найден\n\n400 Invalid - пополнение баланса на негативную/0 сумму(amount must be more 0), не число.\n\n`GET /manager/subscribers/{{subscriberId}}` - получение информации об пользователе(абоненте)\n\n200 ОК - успешное нахождение информации о пользователе(об абоненте)\n\n404 Not Found - пользователь(абонент) не найден",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "33832211"
+	},
+	"item": [
+		{
+			"name": "Manager",
+			"item": [
+				{
+					"name": "Positive",
+					"item": [
+						{
+							"name": "POST",
+							"item": [
+								{
+									"name": "Create new subscriber with required fields",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const firstName = pm.variables.replaceIn(\"{{$randomFirstName}}\");\r",
+													"const surname = pm.variables.replaceIn(\"{{$randomLastName}}\");\r",
+													"const msisdn = '79' + Math.floor(Math.random() * 900000000 + 100000000);\r",
+													"\r",
+													"pm.variables.set('firstName', firstName);\r",
+													"pm.variables.set('surname', surname);\r",
+													"pm.variables.set('msisdn', msisdn);\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 200 - Успешное создание пользователя с обязательными полями\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(200); \r",
+													"    const jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.id).to.be.a('number');\r",
+													"    pm.environment.set(\"createdSubscriberId\", jsonData.id);\r",
+													"\r",
+													"    const responseData = pm.response.json();\r",
+													"    pm.globals.set(\"duplicateMsisdn\", responseData.msisdn);\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"msisdn\": \"{{msisdn}}\",\r\n  \"firstName\": \"{{firstName}}\",\r\n  \"surname\": \"{{surname}}\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscriber",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscriber"
+											],
+											"query": [
+												{
+													"key": "",
+													"value": null,
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Create new subscriber with all fields",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const firstName = pm.variables.replaceIn(\"{{$randomFirstName}}\");\r",
+													"const surname = pm.variables.replaceIn(\"{{$randomLastName}}\");\r",
+													"const msisdn = '79' + Math.floor(Math.random() * 900000000 + 100000000);\r",
+													"const secondName = Math.random() > 0.5 ? pm.variables.replaceIn(\"{{$randomLastName}}\") : null;\r",
+													"const tariffId = Math.random() > 0.5 ? (Math.random() > 0.5 ? '1' : '2') : null;\r",
+													"const balance = Math.floor(Math.random() * 1000);\r",
+													"\r",
+													"pm.variables.set('firstName', firstName);\r",
+													"pm.variables.set('surname', surname);\r",
+													"pm.variables.set('msisdn', msisdn);\r",
+													"pm.variables.set('secondName', secondName);\r",
+													"pm.variables.set('tariffId', tariffId);\r",
+													"pm.variables.set('balance', balance);\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 200 - Успешное создание пользователя со всеми полями\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(200); \r",
+													"    const jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.id).to.be.a('number');\r",
+													"    pm.environment.set(\"createdSubscriberId\", jsonData.id);\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"msisdn\": \"{{msisdn}}\",\r\n  \"firstName\": \"{{firstName}}\",\r\n  \"secondName\": \"{{secondName}}\",\r\n  \"surname\": \"{{surname}}\",\r\n  \"tariffId\": \"{{tariffId}}\",\r\n  \"balance\": {{balance}}\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscriber",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscriber"
+											],
+											"query": [
+												{
+													"key": "",
+													"value": null,
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "PUT",
+							"item": [
+								{
+									"name": "Change tariff",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const subscriberId = Math.floor(Math.random() * 12) + 2; \r",
+													"const tariffId = Math.random() > 0.5 ? 1 : 2;  \r",
+													"\r",
+													"pm.variables.set(\"subscriberId\", subscriberId);\r",
+													"pm.variables.set(\"tariffId\", tariffId);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 200 - Тариф успешно сменен у пользователя\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(200); \r",
+													"    const jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.id).to.be.a('number');\r",
+													"    pm.environment.set(\"createdSubscriberId\", jsonData.id);\r",
+													"\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscribers/{{subscriberId}}/tariff/{{tariffId}}",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscribers",
+												"{{subscriberId}}",
+												"tariff",
+												"{{tariffId}}"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "PATCH",
+							"item": [
+								{
+									"name": "Replenishment to subscriber",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const subscriberId = _.random(2, 13); \r",
+													"const amount = _.random(10, 1000);   \r",
+													"\r",
+													"pm.variables.set(\"subscriberId\", subscriberId);\r",
+													"pm.variables.set(\"amount\", amount);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 200 - Успешное пополнение баланса пользователя\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(200); \r",
+													"    const jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.id).to.be.a('number');\r",
+													"    pm.environment.set(\"createdSubscriberId\", jsonData.id);\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"amount\": {{amount}}\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscribers/{subscriberId}/balance",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscribers",
+												"{subscriberId}",
+												"balance"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "GET",
+							"item": [
+								{
+									"name": "Get info about subscriber",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const subscriberId = _.random(2, 13); \r",
+													"pm.variables.set(\"subscriberId\", subscriberId);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 200 - Успешное получение информации об пользователе\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(200); \r",
+													"    const jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.id).to.be.a('number');\r",
+													"    pm.environment.set(\"createdSubscriberId\", jsonData.id);\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": ""
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscribers/{{subscriberId}}",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscribers",
+												"{{subscriberId}}"
+											],
+											"query": [
+												{
+													"key": "",
+													"value": null,
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Negative",
+					"item": [
+						{
+							"name": "POST",
+							"item": [
+								{
+									"name": "Create new subscriber without required field(name)",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const surname = pm.variables.replaceIn(\"{{$randomLastName}}\");\r",
+													"const msisdn = '79' + Math.floor(Math.random() * 900000000 + 100000000);\r",
+													"\r",
+													"pm.variables.set('firstName', '');\r",
+													"pm.variables.set('surname', surname);\r",
+													"pm.variables.set('msisdn', msisdn);\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 400 - Обязательное поле (имя) не заполнено\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(400); \r",
+													"    const jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.error).to.eql(\"Missing required field: name\");\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"msisdn\": \"{{msisdn}}\",\r\n  \"firstName\": \"{{firstName}}\",\r\n  \"surname\": \"{{surname}}\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscriber",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscriber"
+											],
+											"query": [
+												{
+													"key": "",
+													"value": null,
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Create new subscriber with invalid msisdn",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const firstName = pm.variables.replaceIn(\"{{$randomFirstName}}\");\r",
+													"const surname = pm.variables.replaceIn(\"{{$randomLastName}}\");\r",
+													"const msisdn = '79' + Math.floor(Math.random() * 90000 + 10000);\r",
+													"\r",
+													"pm.variables.set('firstName', firstName);\r",
+													"pm.variables.set('surname', surname);\r",
+													"pm.variables.set('msisdn', msisdn);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 400 - Формат msisdn введен некорректно\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(400); \r",
+													"    const jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.error).to.eql(\"Invalid msisdn format\");\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"msisdn\": \"{{msisdn}}\",\r\n  \"firstName\": \"{{firstName}}\",\r\n  \"surname\": \"{{surname}}\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscriber",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscriber"
+											],
+											"query": [
+												{
+													"key": "",
+													"value": null,
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Create new subscriber with another operator's msisdn",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const firstName = pm.variables.replaceIn(\"{{$randomFirstName}}\");\r",
+													"const surname = pm.variables.replaceIn(\"{{$randomLastName}}\");\r",
+													"const msisdn = '70' + Math.floor(Math.random() * 900000000 + 100000000);\r",
+													"\r",
+													"pm.variables.set('firstName', firstName);\r",
+													"pm.variables.set('surname', surname);\r",
+													"pm.variables.set('msisdn', msisdn);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 400 - msisdn не является клиентом опретора 'Ромашка'\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(400); \r",
+													"    const jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.error).to.eql(\"Invalid msisdn format - another operator's msisdn\");\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"msisdn\": \"{{msisdn}}\",\r\n  \"firstName\": \"{{firstName}}\",\r\n  \"surname\": \"{{surname}}\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscriber",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscriber"
+											],
+											"query": [
+												{
+													"key": "",
+													"value": null,
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Create new subscriber with invalid tariff",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const firstName = pm.variables.replaceIn(\"{{$randomFirstName}}\");\r",
+													"const surname = pm.variables.replaceIn(\"{{$randomLastName}}\");\r",
+													"const msisdn = '79' + Math.floor(Math.random() * 900000000 + 100000000);\r",
+													"\r",
+													"pm.variables.set('firstName', firstName);\r",
+													"pm.variables.set('surname', surname);\r",
+													"pm.variables.set('msisdn', msisdn);\r",
+													"pm.variables.set('tariffId', 3);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 404 - Тариф не найден\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(404); \r",
+													"    const jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.error).to.eql(\"Tariff not found\");\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"msisdn\": \"{{msisdn}}\",\r\n  \"firstName\": \"{{firstName}}\",\r\n  \"surname\": \"{{surname}}\",\r\n  \"tariffId\": \"{{tariffId}}\"\r\n  \r\n  \r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscriber",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscriber"
+											],
+											"query": [
+												{
+													"key": "",
+													"value": null,
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Create new subscriber with negative balance",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const firstName = pm.variables.replaceIn(\"{{$randomFirstName}}\");\r",
+													"const surname = pm.variables.replaceIn(\"{{$randomLastName}}\");\r",
+													"const msisdn = '79' + Math.floor(Math.random() * 900000000 + 100000000);\r",
+													"const balance = Math.floor(Math.random() * -1000);\r",
+													"\r",
+													"pm.variables.set('firstName', firstName);\r",
+													"pm.variables.set('surname', surname);\r",
+													"pm.variables.set('msisdn', msisdn);\r",
+													"pm.variables.set('balance', balance);\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 400 - Сумма пополнения должна быть положительной\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(400); \r",
+													"    const jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.error).to.eql(\"Amount must be positive\");\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"msisdn\": \"{{msisdn}}\",\r\n  \"firstName\": \"{{firstName}}\",\r\n  \"surname\": \"{{surname}}\",\r\n  \"balance\": {{balance}}\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscriber",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscriber"
+											],
+											"query": [
+												{
+													"key": "",
+													"value": null,
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Create new subscriber with zero balance",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const firstName = pm.variables.replaceIn(\"{{$randomFirstName}}\");\r",
+													"const surname = pm.variables.replaceIn(\"{{$randomLastName}}\");\r",
+													"const msisdn = '79' + Math.floor(Math.random() * 900000000 + 100000000);\r",
+													"\r",
+													"pm.variables.set('firstName', firstName);\r",
+													"pm.variables.set('surname', surname);\r",
+													"pm.variables.set('msisdn', msisdn);\r",
+													"pm.variables.set('balance', 0);\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 400 - Сумма пополнения должна быть положительной, больше 0\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(400); \r",
+													"    const jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.error).to.eql(\"Amount must be not 0\");\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"msisdn\": \"{{msisdn}}\",\r\n  \"firstName\": \"{{firstName}}\",\r\n  \"surname\": \"{{surname}}\",\r\n  \"balance\": {{balance}}\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscriber",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscriber"
+											],
+											"query": [
+												{
+													"key": "",
+													"value": null,
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Create existing subscriber",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"//Нужен запрос на добавление пользователя и его номер в глобальную переменную внести\r",
+													"const firstName = pm.variables.replaceIn(\"{{$randomFirstName}}\");\r",
+													"const surname = pm.variables.replaceIn(\"{{$randomLastName}}\");\r",
+													"const duplicateMsisdn = pm.globals.get(\"duplicateMsisdn\");\r",
+													"\r",
+													"pm.variables.set('firstName', firstName);\r",
+													"pm.variables.set('surname', surname);\r",
+													"pm.variables.set('msisdn', duplicateMsisdn);\r",
+													"\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 409 - Пользователь с данным номером уже существует\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(409); \r",
+													"    const jsonData = pm.response.json();\r",
+													"    pm.expect(jsonData.error).to.eql(\"Already exists\");\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"msisdn\": \"{{msisdn}}\",\r\n  \"firstName\": \"{{firstName}}\",\r\n  \"surname\": \"{{surname}}\",\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscriber",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscriber"
+											],
+											"query": [
+												{
+													"key": "",
+													"value": null,
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "PUT",
+							"item": [
+								{
+									"name": "Change tariff to non-existent subscriber",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tariffId = Math.random() > 0.5 ? 1 : 2;  \r",
+													"\r",
+													"pm.variables.set(\"subscriberId\", -1);\r",
+													"pm.variables.set(\"tariffId\", tariffId);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 404 - Пользователь не найден\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(404);\r",
+													"    pm.expect(pm.response.text()).to.include(\"Subscriber not found\");\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscribers/{{subscriberId}}/tariff/{{tariffId}}",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscribers",
+												"{{subscriberId}}",
+												"tariff",
+												"{{tariffId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Change to non-existent tariff",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const subscriberId = Math.floor(Math.random() * 12) + 2; \r",
+													"\r",
+													"pm.variables.set(\"subscriberId\", subscriberId);\r",
+													"pm.variables.set(\"tariffId\", -1);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 400 - Данный тариф не найден\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(400);\r",
+													"    pm.expect(pm.response.text()).to.include(\"Tariff not found\");\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscribers/{{subscriberId}}/tariff/{{tariffId}}",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscribers",
+												"{{subscriberId}}",
+												"tariff",
+												"{{tariffId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Change to invalid tariff",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const subscriberId = Math.floor(Math.random() * 12) + 2; \r",
+													"\r",
+													"pm.variables.set(\"subscriberId\", subscriberId);\r",
+													"pm.variables.set(\"tariffId\", \"abc\");"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 400 - Невалидный тариф\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(400);\r",
+													"    pm.expect(pm.response.text()).to.include(\"Invalid tariff\");\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscribers/{{subscriberId}}/tariff/{{tariffId}}",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscribers",
+												"{{subscriberId}}",
+												"tariff",
+												"{{tariffId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Change to invalid subscriberId",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const tariffId = Math.random() > 0.5 ? 1 : 2;  \r",
+													"\r",
+													"pm.variables.set(\"subscriberId\", \"abc\");\r",
+													"pm.variables.set(\"tariffId\", tariffId);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 400 - Невалидный id пользователя\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(400);\r",
+													"    pm.expect(pm.response.text()).to.include(\"Invalid subscriberId\");\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscribers/{{subscriberId}}/tariff/{{tariffId}}",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscribers",
+												"{{subscriberId}}",
+												"tariff",
+												"{{tariffId}}"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "PATCH",
+							"item": [
+								{
+									"name": "Replenishment to non-existent subscriber",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const amount = _.random(10, 1000);   \r",
+													"\r",
+													"pm.variables.set(\"subscriberId\", -1);\r",
+													"pm.variables.set(\"amount\", amount);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 404 - Пользователь не найден\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(404);\r",
+													"    pm.expect(pm.response.text()).to.include(\"Subscriber not found\");\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"amount\": {{amount}}\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscribers/{{subscriberId}}/balance",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscribers",
+												"{{subscriberId}}",
+												"balance"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Replenishment on negative balance",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const subscriberId = _.random(2, 13);\r",
+													"const amount = _.random(10, 1000)*(-1);   \r",
+													"\r",
+													"pm.variables.set(\"subscriberId\", subscriberId);\r",
+													"pm.variables.set(\"amount\", amount);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 400 - Сумма пополнения должна быть положительной\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(400);\r",
+													"    pm.expect(pm.response.text()).to.include(\"Amount must be positive\");\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"amount\": {{amount}}\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscribers/{{subscriberId}}/balance",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscribers",
+												"{{subscriberId}}",
+												"balance"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Replenishment on invalid balance",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const subscriberId = _.random(2, 13); \r",
+													"\r",
+													"pm.variables.set(\"subscriberId\", subscriberId);\r",
+													"pm.variables.set(\"amount\", \"abc\");"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 400 - Невалидный формат пополнения баланса, не число\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(400);\r",
+													"    pm.expect(pm.response.text()).to.include(\"Invalid format\");\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"amount\": {{amount}}\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscribers/{{subscriberId}}/balance",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscribers",
+												"{{subscriberId}}",
+												"balance"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Replenishment on zero balance by subsciber Copy",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const subscriberId = _.random(2, 13);  \r",
+													"\r",
+													"pm.variables.set(\"subscriberId\", subscriberId);\r",
+													"pm.variables.set(\"amount\", 0);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 400 - Сумма пополнения должна быть больше 0\", function () {\r",
+													"    pm.expect(pm.response.code).to.equal(400);\r",
+													"    pm.expect(pm.response.text()).to.include(\"Amount must be more 0\");\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"amount\": {{amount}}\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscribers/{{subscriberId}}/balance",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscribers",
+												"{{subscriberId}}",
+												"balance"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "GET",
+							"item": [
+								{
+									"name": "Get info about non-existent subscriber",
+									"event": [
+										{
+											"listen": "prerequest",
+											"script": {
+												"exec": [
+													"const subscriberId = _.random(2, 13) * (-1); \r",
+													"pm.variables.set(\"subscriberId\", subscriberId);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										},
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Статус 404 - Пользователь не найден\", () => {\r",
+													"    pm.response.to.have.status(404);\r",
+													"    pm.expect(pm.response.json().error).to.include(\"Subscriber not found\");\r",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "{{manager_token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": ""
+										},
+										"url": {
+											"raw": "{{BASE_URL}}/crm/manager/subscribers/{{subscriberId}}",
+											"host": [
+												"{{BASE_URL}}"
+											],
+											"path": [
+												"crm",
+												"manager",
+												"subscribers",
+												"{{subscriberId}}"
+											],
+											"query": [
+												{
+													"key": "",
+													"value": null,
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Subscriber",
+			"item": [
+				{
+					"name": "Positive",
+					"item": [
+						{
+							"name": "Replenishment by subscriber",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const amount = _.random(10, 1000);\r",
+											"pm.variables.set(\"amount\", amount);\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Статус 200 - Успешное пополнение баланса пользователю\", function () {\r",
+											"    pm.expect(pm.response.code).to.equal(200); \r",
+											"    const jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData.id).to.be.a('number');\r",
+											"    pm.environment.set(\"createdSubscriberId\", jsonData.id);\r",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "{{subscriber_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"amount\": {{amount}}\r\n}"
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/crm/subscriber/balance",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"crm",
+										"subscriber",
+										"balance"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": null,
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Negative",
+					"item": [
+						{
+							"name": "Replenishment by somebody",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const amount = _.random(10, 1000);\r",
+											"pm.variables.set(\"amount\", amount);\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Статус 401 - Требуется аутентификация\", function () {\r",
+											"    pm.expect(pm.response.code).to.equal(401); \r",
+											"    pm.expect(pm.response.text()).to.include(\"Unauthorized\");\r",
+											"\r",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "{{subscriber_token}}",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"amount\": {{amount}}\r\n}"
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/crm/subscriber/balance",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"crm",
+										"subscriber",
+										"balance"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": null,
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Replenishment on negative balance by subsciber",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const subscriberId = _.random(2, 13);\r",
+											"const amount = _.random(10, 1000)*(-1);   \r",
+											"\r",
+											"pm.variables.set(\"subscriberId\", subscriberId);\r",
+											"pm.variables.set(\"amount\", amount);"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Статус 400 - Сумма пополнения должна быть положительной\", function () {\r",
+											"    pm.expect(pm.response.code).to.equal(400);\r",
+											"    pm.expect(pm.response.text()).to.include(\"Amount must be positive\");\r",
+											"});\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "{{subscriber_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"amount\": {{amount}}\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/crm/subscriber/balance",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"crm",
+										"subscriber",
+										"balance"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Replenishment on zero balance by subsciber",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const subscriberId = _.random(2, 13);  \r",
+											"\r",
+											"pm.variables.set(\"subscriberId\", subscriberId);\r",
+											"pm.variables.set(\"amount\", 0);"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Статус 400 - Сумма пополнения должна быть больше 0\", function () {\r",
+											"    pm.expect(pm.response.code).to.equal(400);\r",
+											"    pm.expect(pm.response.text()).to.include(\"Amount must be more 0\");\r",
+											"});\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "{{subscriber_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"amount\": {{amount}}\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/crm/subscriber/balance",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"crm",
+										"subscriber",
+										"balance"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Replenishment on invalid balance by subscriber",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const subscriberId = _.random(2, 13); \r",
+											"\r",
+											"pm.variables.set(\"subscriberId\", subscriberId);\r",
+											"pm.variables.set(\"amount\", \"abc\");"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Статус 400 - Невалидный формат пополнения баланса, не число\", function () {\r",
+											"    pm.expect(pm.response.code).to.equal(400);\r",
+											"    pm.expect(pm.response.text()).to.include(\"Invalid format\");\r",
+											"});\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "{{subscriber_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"amount\": {{amount}}\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/crm/subscriber/balance",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"crm",
+										"subscriber",
+										"balance"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "manager_token",
+			"value": "Bearer eyJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE3NDY4MDg4MDEsImV4cCI6MTc0NjgxMjQwMSwibXNpc2RuIjoiNzc3Nzc3Nzc3NzciLCJyb2xlIjoiUk9MRV9NQU5BR0VSIn0.aQhyO6Nmq9dzoqtu9FBEC2R5k2VkVQHykmCAf-XpQTfrm1kWyoIVVkHIU3dI9Mf9piH66RVFf_V5bJrjeBLJkg",
+			"type": "string"
+		},
+		{
+			"key": "subscriber_token",
+			"value": "Bearer eyJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE3NDY3OTkyNzMsImV4cCI6MTc0NjgwMjg3MywibXNpc2RuIjoiNzkwMDAwMDAwMDEiLCJyb2xlIjoiUk9MRV9TVUJTQ1JJQkVSIiwicmVmX2lkIjoxfQ.R_8C2dR612y0PFJCcokHD18N1Qb5aSWWCmF8EYHtqz1OTUer-UEZ-hn6vdWngQsoVpS30WpiyqtfJLeGlCBx8A",
+			"type": "string"
+		},
+		{
+			"key": "BASE_URL",
+			"value": "https://9d7932a00f7855eeea9842dbb5baa787.serveo.net",
+			"type": "string"
+		}
+	]
+}
